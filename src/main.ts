@@ -4,6 +4,8 @@ import {
   CreateStartUpPageContainer,
   TextContainerUpgrade,
   OsEventTypeList,
+  MenuItemProperty,
+  MenuContainerProperty,
 } from '@evenrealities/even_hub_sdk'
 import { WORDS, SITUATIONS } from './data/curriculum'
 import { loadProgress, record, dueWords, newWords, forgotten, getWord, type Progress } from './logic/progress'
@@ -26,79 +28,23 @@ function currentWord() {
 
 function line(): string {
   if (mode === 'home') {
-    return [
-      'KOTO',
-      '',
-      `${dueWords(progress).length} due`,
-      '',
-      'Open the menu to choose:',
-      'Speak! · Learn · Forgotten',
-      '',
-      'tap  Speak!',
-      'double-tap  exit',
-    ].join('\n')
+    return ['KOTO','',`${dueWords(progress).length} due`,'','Open the menu to choose:','Speak! · Learn · Forgotten','','tap  Speak!','double-tap  exit'].join('\n')
   }
   if (mode === 'done') {
-    return [
-      'Done for now.',
-      '',
-      'menu  choose next',
-      'tap  home',
-      'double-tap  exit',
-    ].join('\n')
+    return ['Done for now.','','menu  choose next','tap  home','double-tap  exit'].join('\n')
   }
   const w = currentWord()
   if (!w) return 'No items.\nmenu for options'
   const sit = SITUATIONS.find(s => s.target === w.id)
   const prompt = mode === 'learn' ? `NEW  ${w.en}` : (sit?.en || w.en)
-
-  if (phase === 'prompt') {
-    return [
-      prompt,
-      '',
-      'Say it.',
-      'tap  I tried',
-      'swipe  hint',
-      'menu  modes',
-    ].join('\n')
-  }
-  if (phase === 'hint1') {
-    return [
-      prompt,
-      '',
-      `starts with  ${w.romaji[0]}`,
-      'tap  more',
-    ].join('\n')
-  }
-  if (phase === 'hint2') {
-    return [
-      prompt,
-      '',
-      w.jp.slice(0, 2) + '…',
-      showRomaji ? w.romaji : '',
-      'tap  answer',
-    ].join('\n')
-  }
+  if (phase === 'prompt') return [prompt,'','Say it.','tap  I tried','swipe  hint','menu  modes'].join('\n')
+  if (phase === 'hint1') return [prompt,'',`starts with  ${w.romaji[0]}`,'tap  more'].join('\n')
+  if (phase === 'hint2') return [prompt,'',w.jp.slice(0,2)+'…',showRomaji?w.romaji:'','tap  answer'].join('\n')
   if (phase === 'reveal') {
     const ex = w.examples[0]
-    return [
-      w.jp,
-      showRomaji ? w.romaji : '',
-      ex.jp,
-      showRomaji ? ex.romaji : '',
-      ex.en,
-      '',
-      'tap  rate',
-    ].join('\n')
+    return [w.jp,showRomaji?w.romaji:'',ex.jp,showRomaji?ex.romaji:'',ex.en,'','tap  rate'].join('\n')
   }
-  // rate
-  return [
-    'How was it?',
-    '',
-    'tap  got it',
-    'swipe up  almost',
-    'swipe down  missed',
-  ].join('\n')
+  return ['How was it?','','tap  got it','swipe up  almost','swipe down  missed'].join('\n')
 }
 
 function eventTypeOf(envelope?: { eventType?: OsEventTypeList }): OsEventTypeList | null {
@@ -113,39 +59,26 @@ await bridge.createStartUpPageContainer(
     containerTotalNum: 1,
     textObject: [
       new TextContainerProperty({
-        xPosition: 0,
-        yPosition: 0,
-        width: 576,
-        height: 288,
-        borderWidth: 0,
-        borderColor: 5,
-        paddingLength: 4,
-        containerID: 1,
-        containerName: 'main',
-        content: line(),
-        isEventCapture: 1,
+        xPosition: 0, yPosition: 0, width: 576, height: 288,
+        borderWidth: 0, borderColor: 5, paddingLength: 4,
+        containerID: 1, containerName: 'main',
+        content: line(), isEventCapture: 1,
       }),
     ],
-    menuObject: {
+    menuObject: new MenuContainerProperty({
       menuItems: [
-        { itemName: 'Speak!', itemID: 1 },
-        { itemName: 'Learn new', itemID: 2 },
-        { itemName: 'Forgotten', itemID: 3 },
-        { itemName: 'Home', itemID: 4 },
-        { itemName: 'Romaji on/off', itemID: 5 },
+        new MenuItemProperty({ itemName: 'Speak!', itemID: 1 }),
+        new MenuItemProperty({ itemName: 'Learn new', itemID: 2 }),
+        new MenuItemProperty({ itemName: 'Forgotten', itemID: 3 }),
+        new MenuItemProperty({ itemName: 'Home', itemID: 4 }),
+        new MenuItemProperty({ itemName: 'Romaji on/off', itemID: 5 }),
       ],
-    },
+    }),
   }),
 )
 
 function show() {
-  bridge.textContainerUpgrade(
-    new TextContainerUpgrade({
-      containerID: 1,
-      containerName: 'main',
-      content: line(),
-    }),
-  )
+  bridge.textContainerUpgrade(new TextContainerUpgrade({ containerID: 1, containerName: 'main', content: line() }))
   const el = document.getElementById('status')
   if (el) el.textContent = `${mode} ${qi + 1}/${queue.length || '-'} ${phase}`
 }
@@ -155,44 +88,24 @@ function startSpeak() {
   const fresh = newWords(progress, 3).map(w => w.id)
   queue = [...due, ...fresh]
   if (queue.length === 0) queue = WORDS.slice(0, 5).map(w => w.id)
-  qi = 0
-  phase = 'prompt'
-  hintLevel = 0
-  mode = 'speak'
-  show()
+  qi = 0; phase = 'prompt'; hintLevel = 0; mode = 'speak'; show()
 }
-
 function startLearn() {
   const fresh = newWords(progress, 4).map(w => w.id)
   queue = fresh.length ? fresh : WORDS.slice(0, 4).map(w => w.id)
-  qi = 0
-  phase = 'prompt'
-  mode = 'learn'
-  show()
+  qi = 0; phase = 'prompt'; mode = 'learn'; show()
 }
-
 function startForgotten() {
   const ids = forgotten(progress, 8).map(w => w.id)
   queue = ids.length ? ids : dueWords(progress, 5).map(w => w.id)
   if (!queue.length) queue = WORDS.slice(0, 3).map(w => w.id)
-  qi = 0
-  phase = 'prompt'
-  mode = 'forgotten'
-  show()
+  qi = 0; phase = 'prompt'; mode = 'forgotten'; show()
 }
-
 function advance() {
   qi++
-  if (qi >= queue.length) {
-    mode = 'done'
-    show()
-    return
-  }
-  phase = 'prompt'
-  hintLevel = 0
-  show()
+  if (qi >= queue.length) { mode = 'done'; show(); return }
+  phase = 'prompt'; hintLevel = 0; show()
 }
-
 function rate(outcome: 'got' | 'almost' | 'missed') {
   const w = currentWord()
   if (w) record(progress, w.id, outcome)
@@ -209,57 +122,24 @@ const unsubscribe = bridge.onEvenHubEvent(event => {
     if (menuId === 5) { showRomaji = !showRomaji; show() }
     return
   }
-
   const sys = eventTypeOf(event.sysEvent)
   const txt = eventTypeOf(event.textEvent)
-
   if (sys === OsEventTypeList.DOUBLE_CLICK_EVENT || txt === OsEventTypeList.DOUBLE_CLICK_EVENT) {
-    bridge.shutDownPageContainer(1)
-    return
+    bridge.shutDownPageContainer(1); return
   }
-
   const click = sys === OsEventTypeList.CLICK_EVENT || txt === OsEventTypeList.CLICK_EVENT
   const up = txt === OsEventTypeList.SCROLL_TOP_EVENT
   const down = txt === OsEventTypeList.SCROLL_BOTTOM_EVENT
-
   if (mode === 'home') {
-    if (click) startSpeak()
-    else if (up) startLearn()
-    else if (down) startForgotten()
-    return
+    if (click) startSpeak(); else if (up) startLearn(); else if (down) startForgotten(); return
   }
-  if (mode === 'done') {
-    if (click) { mode = 'home'; show() }
-    return
-  }
-
-  if (phase === 'prompt') {
-    if (click) { phase = 'reveal'; show() }
-    else if (up || down) { phase = 'hint1'; show() }
-    return
-  }
-  if (phase === 'hint1') {
-    if (click) { phase = 'hint2'; show() }
-    return
-  }
-  if (phase === 'hint2') {
-    if (click) { phase = 'reveal'; show() }
-    return
-  }
-  if (phase === 'reveal') {
-    if (click) { phase = 'rate'; show() }
-    return
-  }
-  if (phase === 'rate') {
-    if (click) rate('got')
-    else if (up) rate('almost')
-    else if (down) rate('missed')
-    return
-  }
-
-  if (sys === OsEventTypeList.SYSTEM_EXIT_EVENT || sys === OsEventTypeList.ABNORMAL_EXIT_EVENT) {
-    unsubscribe()
-  }
+  if (mode === 'done') { if (click) { mode = 'home'; show() }; return }
+  if (phase === 'prompt') { if (click) { phase = 'reveal'; show() } else if (up || down) { phase = 'hint1'; show() }; return }
+  if (phase === 'hint1') { if (click) { phase = 'hint2'; show() }; return }
+  if (phase === 'hint2') { if (click) { phase = 'reveal'; show() }; return }
+  if (phase === 'reveal') { if (click) { phase = 'rate'; show() }; return }
+  if (phase === 'rate') { if (click) rate('got'); else if (up) rate('almost'); else if (down) rate('missed'); return }
+  if (sys === OsEventTypeList.SYSTEM_EXIT_EVENT || sys === OsEventTypeList.ABNORMAL_EXIT_EVENT) unsubscribe()
 })
 
 document.getElementById('status')!.textContent = 'KOTO ready'
