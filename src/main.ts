@@ -29,23 +29,26 @@ function line(): string {
     return [
       'KOTO',
       '',
-      'tap  Speak!',
-      'swipe  Learn new',
-      'double-tap  exit',
-      '',
       `${dueWords(progress).length} due`,
+      '',
+      'Open the menu to choose:',
+      'Speak! · Learn · Forgotten',
+      '',
+      'tap  Speak!',
+      'double-tap  exit',
     ].join('\n')
   }
   if (mode === 'done') {
     return [
       'Done for now.',
       '',
+      'menu  choose next',
       'tap  home',
       'double-tap  exit',
     ].join('\n')
   }
   const w = currentWord()
-  if (!w) return 'No items.\ntap home'
+  if (!w) return 'No items.\nmenu for options'
   const sit = SITUATIONS.find(s => s.target === w.id)
   const prompt = mode === 'learn' ? `NEW  ${w.en}` : (sit?.en || w.en)
 
@@ -56,6 +59,7 @@ function line(): string {
       'Say it.',
       'tap  I tried',
       'swipe  hint',
+      'menu  modes',
     ].join('\n')
   }
   if (phase === 'hint1') {
@@ -122,6 +126,15 @@ await bridge.createStartUpPageContainer(
         isEventCapture: 1,
       }),
     ],
+    menuObject: {
+      menuItems: [
+        { itemName: 'Speak!', itemID: 1 },
+        { itemName: 'Learn new', itemID: 2 },
+        { itemName: 'Forgotten', itemID: 3 },
+        { itemName: 'Home', itemID: 4 },
+        { itemName: 'Romaji on/off', itemID: 5 },
+      ],
+    },
   }),
 )
 
@@ -187,6 +200,16 @@ function rate(outcome: 'got' | 'almost' | 'missed') {
 }
 
 const unsubscribe = bridge.onEvenHubEvent(event => {
+  const menuId = event.menuItemClickEvent?.itemID
+  if (menuId) {
+    if (menuId === 1) startSpeak()
+    if (menuId === 2) startLearn()
+    if (menuId === 3) startForgotten()
+    if (menuId === 4) { mode = 'home'; show() }
+    if (menuId === 5) { showRomaji = !showRomaji; show() }
+    return
+  }
+
   const sys = eventTypeOf(event.sysEvent)
   const txt = eventTypeOf(event.textEvent)
 
