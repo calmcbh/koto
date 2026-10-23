@@ -1,0 +1,12 @@
+{
+  "package_id": "com.calmcbh.koto",
+  "edition": "202601",
+  "name": "KOTO",
+  "version": "0.1.0",
+  "min_app_version": "2.2.6",
+  "min_sdk_version": "0.0.7",
+  "entrypoint": "index.html",
+  "tagline": "Personal Japanese speaking practice",
+  "description": "Speak Japanese from real situations. Hints, spaced recall, and persistent progress on your G2.",
+  "author": "Andrea Maloney"
+}
